@@ -45,7 +45,7 @@ void edit_mp3(char song[], char tag[], char content[])
     //copy header(10bytes) from original to temperory file 
 	fread(id3, (sizeof(id3)), 1, fp);
     fwrite(id3, (sizeof(id3)), 1, tp);
-
+    int f = 0;
     //in loop find the required tag and replace that with given content
     for(int i = 0; i < 6; i++)
     {
@@ -55,6 +55,7 @@ void edit_mp3(char song[], char tag[], char content[])
 	    TAG[4] = '\0';  
         fwrite(TAG,(sizeof(TAG) - 1), 1, tp);
         //if tag matches to user given tag, write that given content.
+        
         if(strcmp(TAG, tagEdit) ==0)
         {  
             int size = strlen(content) + 1;
@@ -71,6 +72,7 @@ void edit_mp3(char song[], char tag[], char content[])
             fwrite(content, temp_size, 1, tp);
             og_size=convert(og_size);
             fseek(fp,og_size,SEEK_CUR);
+            f = 1;
             break;
         }
         //else copy the size and content from original file
@@ -101,7 +103,10 @@ void edit_mp3(char song[], char tag[], char content[])
     //remove the original file and rename edited file to original
     remove(song);
     rename("temp.mp3",song);
+    if(f == 1)
     printf("          ####           File edited succesfully           ###\n");
+    else
+    printf("          ####           tag not found on file             ###\n");
     printf("=========================================================================\n");
     printf("#########################################################################\n");
 }
