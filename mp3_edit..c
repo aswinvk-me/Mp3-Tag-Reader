@@ -15,8 +15,20 @@ void edit_mp3(char song[], char tag[], char content[])
     strcpy(tagEdit, "TALB");
 
     else if(strcmp(tag, "-y") == 0)
-    strcpy(tagEdit, "TYER");
-
+    {
+        strcpy(tagEdit, "TYER");
+        int i = 0;
+        while(content[i])
+        {
+            if(isdigit(content[i]) == 0 | i > 3)
+            {
+                printf("|                          Not a valid year!!                           |\n");
+                printf("=========================================================================\n");
+                return;
+            }
+            i++;
+        }
+    }
     else if(strcmp(tag, "-C") == 0)
     strcpy(tagEdit, "TCON");
 
@@ -26,7 +38,8 @@ void edit_mp3(char song[], char tag[], char content[])
     {
     printf("|                        Invalid tag option                             |\n");
     return;
-    } 
+    }
+     
      printf("%s\t>>>\tEditing %s\n", song, tagEdit);
     printf("=========================================================================\n");
 
