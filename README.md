@@ -1,144 +1,140 @@
-# LSB Image Steganography (C Project)
+# MP3 Tag Reader & Editor (ID3v2.3)
 
-   
-
-A complete implementation of **LSB (Least Significant Bit) Image Steganography** in C.
-This project hides a **text file** inside a **24-bit BMP image** and can also extract it back.
+A command-line MP3 metadata **viewer and editor** built in C. This tool reads and modifies ID3v2.3 tags such as **Title, Artist, Album, Year, Content, and Comment**.
 
 ---
 
 ## 📌 Features
 
-* Hide `.txt` files inside `.bmp` images
-* Extract hidden messages accurately
-* Uses 1-bit LSB encoding
-* Input validation & error handling
-* Fully modular code structure
-* Clean logs for each step
+* View MP3 metadata (ID3v2.3)
+* Edit individual tags
+* Validate file format before processing
+* Proper endian conversion while reading sizes
+* Safe editing using temporary file mechanism
+* Easy CLI usage with clear help menu
 
 ---
 
-## 📂 Project Structure
+## 🗂️ Project Structure
 
 ```
 /
-├── main.c                   # Operation selection (encode/decode)
-├── encode.c / encode.h      # Encoding logic
-├── decode.c / decode.h      # Decoding logic
-├── common.h                 # Magic string (#*)
-├── types.h                  # Custom typedefs & enums
-├── secret.txt               # Sample secret file
-├── output.txt               # Example decoded output
-├── stego.bmp                # Example encoded image
+├── main.c           # Entry point, handles CLI options
+├── help_mp3.c       # Prints help menu
+├── mp3_view.c       # Reads and displays MP3 metadata
+├── mp3_edit.c       # Edits MP3 metadata
+├── mp3_header.h     # Common includes & function prototypes
+├── sample.mp3       # Sample MP3 file
 ```
 
 ---
 
 ## 🧠 How It Works
 
-### 🔒 Encoding Process
+### 🔍 Viewing Tags (`-v`)
 
-1. Validate file arguments
-2. Open source BMP, secret `.txt`, and output BMP
-3. Check BMP capacity
-4. Copy BMP header (54 bytes)
-5. Encode into image LSBs:
+The program:
 
-   * Magic string (`#*`)
-   * Secret file extension size
-   * Secret file extension
-   * Secret file size
-   * Secret file data
-6. Copy remaining image bytes
+1. Opens the MP3 file
+2. Checks for header signature `ID3` (ID3v2.3)
+3. Skips header bytes
+4. Reads the following frames:
 
-### 🔓 Decoding Process
+   * `TIT2` → Title
+   * `TPE1` → Artist
+   * `TALB` → Album
+   * `TYER` → Year
+   * `TCON` → Content
+   * `COMM` → Comment
+5. Converts frame size from little-endian to big-endian
+6. Prints metadata in a clean format
 
-1. Open stego BMP
-2. Skip the header
-3. Verify the magic string
-4. Decode:
+### ✏️ Editing Tags (`-e`)
 
-   * Extension size
-   * Extension
-   * File size
-   * File content
-5. Write extracted file
-
----
-
-## ⚙️ Building
-
-Compile using GCC:
-
-```bash
-gcc main.c encode.c decode.c -o stego
-```
+1. Opens the original MP3 file and creates a temporary file
+2. Searches for the specified tag (`-a`, `-t`, `-A`, `-y`, `-C`, `-c`)
+3. Converts the new content size to the correct endian format
+4. Writes updated tag to the temp file
+5. Copies remaining bytes
+6. Replaces the original file with the edited version
 
 ---
 
 ## 🚀 Usage
 
-### **Encoding**
-
-```bash
-./stego -e input.bmp secret.txt output.bmp
-```
-
-If output name is missing:
+### ✔ View Tags
 
 ```
-stego.bmp
+./a.out -v file.mp3
 ```
 
-### **Decoding**
-
-```bash
-./stego -d stego.bmp recovered.txt
-```
-
-If output name is missing:
+### ✔ Edit Tags
 
 ```
-output
+./a.out -e file.mp3 -[a t A y C c] "new_content"
 ```
+
+### ✔ Help Menu
+
+```
+./a.out --help
+```
+
+---
+
+## 🏷️ Tag Options
+
+| Option | Tag  | Meaning                        |
+| ------ | ---- | ------------------------------ |
+| `-a`   | TPE1 | Artist Name                    |
+| `-t`   | TIT2 | Song Title                     |
+| `-A`   | TALB | Album Name                     |
+| `-y`   | TYER | Release Year (1800–2100 check) |
+| `-C`   | TCON | Content Type                   |
+| `-c`   | COMM | Comment                        |
 
 ---
 
 ## 📄 Example
 
-If `secret.txt` contains:
+### View
 
 ```
-My password is SECRET ;)
+./a.out -v sample.mp3
 ```
 
-After decoding:
+### Edit Title
 
 ```
-output.txt → "My password is SECRET ;)"
+./a.out -e sample.mp3 -t "My New Title"
+```
+
+### Edit Year
+
+```
+./a.out -e sample.mp3 -y "2019"
 ```
 
 ---
 
-## ✔️ Requirements
+## ⚙️ Build Instructions
 
-* GCC or any C compiler
-* 24-bit BMP image (uncompressed)
-* Secret file must be `.txt`
+Compile using GCC:
 
----
-
-## 🔧 Future Improvements
-
-* Encryption before embedding
-* Support for any file type (binary mode)
-* PNG/JPEG steganography
-* GUI version
-* CLI progress bar
+```
+gcc main.c help_mp3.c mp3_view.c mp3_edit.c -o mp3_tag_editor
+```
 
 ---
 
+## 📝 Notes
 
+* Only supports **ID3v2.3** (most common standard)
+* Editing year validates numeric range
+* Uses safe endian conversion for size fields
+* Does not parse extended headers or unsynchronized data
+
+---
 
 ## 👤 Author
 
