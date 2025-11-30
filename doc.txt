@@ -1,0 +1,205 @@
+MP3 TAG READER & EDITOR – DETAILED DOCUMENTATION (ID3v2.3)
+
+Author: Aswin Chandra M A
+
+===============================================================
+
+INTRODUCTION
+===============================================================
+This project is a command-line MP3 metadata viewer and editor written in C.
+It works specifically with ID3v2.3 tags, which are widely used in MP3 files.
+
+ID3 tags store metadata such as:
+
+Title
+
+Artist
+
+Album
+
+Year
+
+Content
+
+Comment
+
+This tool can view these tags and edit them individually.
+
+===============================================================
+2. WHAT ARE MP3 TAGS? (ID3 EXPLAINED)
+
+MP3 files do not naturally store title, artist, etc.
+This information is stored in a special format called ID3.
+
+ID3 has several versions:
+
+ID3v1 → very small, fixed-size
+
+ID3v2.3 → used by this project
+
+ID3v2.4 → newer, more complex
+
+ID3v2.3 Structure
+
+At the start of an MP3 file:
+
+ID3 HEADER (10 bytes)
+┌──────────┬─────────┬─────────────┐
+│ Bytes    │ Name    │ Meaning     │
+├──────────┼─────────┼─────────────┤
+│ 0–2      │ "ID3"   │ Tag ID      │
+│ 3        │ Version │ Major=3     │
+│ 4        │ Revision│ Minor=0     │
+│ 5–9      │ Flags & Size          │
+└──────────┴─────────┴─────────────┘
+
+
+After this header, multiple frames follow.
+
+Example Frame (TIT2 – Title)
+TIT2 (4 bytes)  
+00 00 00 0F (size - big endian)  
+00 00 (flags)  
+Some Title\0 (content)
+
+===============================================================
+3. FILE STRUCTURE (YOUR PROJECT)
+
+main.c → Handles arguments (-v, -e, --help)
+
+mp3_view.c → Reads and prints metadata
+
+mp3_edit.c → Modifies specific tags safely
+
+help_mp3.c → Usage instructions
+
+mp3_header.h → Common includes and function declarations
+
+===============================================================
+4. VIEWING TAGS – INTERNAL WORKFLOW
+Step 1 — Open file
+FILE *fp = fopen(song, "rb");
+
+Step 2 — Read ID3 header
+fread(id3, 3, 1, fp);
+if(strcmp(id3, "ID3") != 0) { /* not mp3 */ }
+
+Step 3 — Skip next 7 bytes
+fseek(fp, 7, SEEK_CUR);
+
+Step 4 — For each tag:
+fread(TAG, 4, 1, fp);     // e.g., "TIT2"
+fread(&size, 4, 1, fp);   // size of frame
+size = convert(size);     // convert endian
+fseek(fp, 3, SEEK_CUR);   // skip flags + null
+fread(content, size - 1, 1, fp);
+
+Step 5 — Print
+Title: My Song
+Artist: Aswin
+Album: Unknown
+
+===============================================================
+5. EDITING TAGS – INTERNAL WORKFLOW
+
+Editing is done safely using a temporary file.
+
+Step 1 — Determine which tag to edit
+if(strcmp(tag, "-t") == 0)
+    strcpy(tagEdit, "TIT2");
+
+Step 2 — Open files
+FILE *tp = fopen("temp.mp3", "wb");
+FILE *fp = fopen(song, "rb");
+
+Step 3 — Copy ID3 header
+fread(id3, 10, 1, fp);
+fwrite(id3, 10, 1, tp);
+
+Step 4 — Loop through frames
+fread(TAG, 4, 1, fp);
+
+if(strcmp(TAG, tagEdit) == 0)
+{
+    size = strlen(content) + 1;
+    size = convert(size);       // endian fix
+    fwrite(&size, 4, 1, tp);    // new size
+    fwrite(content, size - 1, 1, tp);
+    fseek(fp, old_size, SEEK_CUR);
+}
+else
+{
+    // just copy unchanged frame
+}
+
+Step 5 — Copy the rest of the MP3
+while(fread(buffer, 1, 1, fp))
+    fwrite(buffer, 1, 1, tp);
+
+Step 6 — Replace original
+remove(song);
+rename("temp.mp3", song);
+
+===============================================================
+6. ENDIAN CONVERSION EXPLAINED
+
+Different systems store numbers differently.
+
+ID3 uses big-endian
+Your CPU likely uses little-endian
+
+Your code fixes this using:
+
+int convert(int size)
+{
+    char*ptr = (char *)&size;
+    for(int i = 0; i < 2; i++)
+    {
+        char temp = ptr[i];
+        ptr[i] = ptr[3 - i];
+        ptr[3 - i] = temp;
+    }
+    return size;
+}
+
+===============================================================
+7. USAGE SUMMARY
+View:
+./a.out -v file.mp3
+
+Edit title:
+./a.out -e file.mp3 -t "New Title"
+
+Edit year:
+./a.out -e file.mp3 -y "2023"
+
+Help:
+./a.out --help
+
+===============================================================
+8. LIMITATIONS
+
+Only works with ID3v2.3
+
+Does not parse extended frames
+
+Cannot modify unsynchronized frames
+
+Editing is limited to 6 frames
+
+===============================================================
+9. CONCLUSION
+
+This project teaches:
+
+Binary file parsing
+
+Working with ID3 tags
+
+Endian handling
+
+Frame-based metadata editing
+
+Safe file rewriting
+
+It is a solid project for understanding real-world file formats and low-level C programming.
